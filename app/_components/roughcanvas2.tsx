@@ -6,6 +6,7 @@ import { Drawable } from 'roughjs/bin/core';
 import getStroke, { getStrokePoints } from 'perfect-freehand';
 import { RoughCanvas } from 'roughjs/bin/canvas';
 
+
 type point = {x:number,y:number,pressure?: number | undefined}[]
 type inputbox = {x:number,y:number}
 
@@ -17,6 +18,7 @@ interface Element{
     roughobject?: Drawable | undefined
     tool:tools
     points?: point
+    text?:string
 }
  
 enum actions{
@@ -29,12 +31,13 @@ enum tools{
     "rectangle",
     "circle",
     "pencil",
-    "text"
+    "text",
+    "select"
 }
 
 const gen = rough.generator()
 
-const createElement =(x1:number,y1:number,x2:number,y2:number,tool:tools)=>{
+const createElement =(x1:number,y1:number,x2:number,y2:number,tool:tools,text?:string)=>{
     let roughobject;
     if(tool == tools.line) 
     {
@@ -57,13 +60,16 @@ const createElement =(x1:number,y1:number,x2:number,y2:number,tool:tools)=>{
     else if(tool == tools.pencil){
          return {x1,y1,x2,y2,tool,points:[{x:x2,y:y2}]}
     }
-   
+     else if(tool == tools.text){
+        if(!text) return {x1,y1,x2,y2,tool,text:""}
+        return {x1,y1,x2,y2,tool,text:text}
+     }
     else{
         console.log("no input");
     }
     }
 
-     const updateelements = (elements:Element[],clientX:number,clientY:number,tool:tools)=>{
+     const updateelements = (elements:Element[],clientX:number,clientY:number,tool:tools,text?:string)=>{
         if(tool==tools.pencil){
             const index = elements.length-1;
             const points = elements[index].points as point
@@ -73,7 +79,17 @@ const createElement =(x1:number,y1:number,x2:number,y2:number,tool:tools)=>{
         const elementscopy = [...elements];
         elementscopy[index] = updated;
         return elementscopy
-        }     
+        }   
+        
+        if(tool ==tools.text){
+            const index = elements.length-1;
+            const updated = createElement(elements[index].x1,elements[index].y1,clientX,clientY,tool,text);
+            if(!updated) return
+            const elementscopy = [...elements];
+            elementscopy[index] = updated;
+            return elementscopy
+        }
+
         const index = elements.length-1;
         const updated = createElement(elements[index].x1,elements[index].y1,clientX,clientY,tool);
         if(!updated) return
@@ -101,7 +117,15 @@ const createElement =(x1:number,y1:number,x2:number,y2:number,tool:tools)=>{
      const Draw = (elements:Element[],ctx:CanvasRenderingContext2D,rc:RoughCanvas)=>{
         if(!elements) return 
         elements.map((element:Element)=>{
-            if(element.tool==tools.pencil){
+            if(element.tool==tools.text){
+                if(element.text !=""){
+                ctx.textBaseline = "top";
+                ctx.font = "24px sans-serif"
+                console.log(element.x1,element.y1)
+                ctx.fillText(element.text as string, element.x1, element.y1);
+                }
+            }
+            else if(element.tool==tools.pencil){
                 if(!element.points) return
                 const stroke = getSvgPathFromStroke(getStroke(element.points));
                 ctx.fill(new Path2D(stroke));
@@ -116,14 +140,13 @@ const Rough2 = ()=>{
     
     const [elements,setElements] = useState<Element[]>([]);
     const [drawing, setDrawing] =useState(false);
-    const [tool,setTool] = useState<tools>(tools.line);
+    const [tool,setTool] = useState<tools>(tools.select);
     const [action,setAction] =useState<string>()
-    const [inptl,setInptl] =useState<inputbox>()
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const canvas = canvasRef.current
     const textarea = useRef<HTMLTextAreaElement>(null)
 
-
+   
 
    
 
@@ -141,17 +164,22 @@ const Rough2 = ()=>{
 
     
     const mousedown = (e:React.MouseEvent<HTMLCanvasElement>)=>{
-        setDrawing(true);
-       const {clientX,clientY} = e
-       const element = createElement(clientX,clientY,clientX,clientY,tool);
+    setDrawing(true);
+    if(tool == tools.select || tool == tools.text) return
+    setAction("draw")
+    const {clientX,clientY} = e
+    const element = createElement(clientX,clientY,clientX,clientY,tool);
       if(!element) return
        setElements(prevState =>[...prevState,element])
+        setAction("draw")
        
+
     }
 
     const mousemove =(e:React.MouseEvent<HTMLCanvasElement>)=>{
         if(!drawing) return
-        // if(tool==tools.text) return
+        if(tool==tools.text || tool==tools.select) return
+        if(action == "text") return
 
         const {clientX,clientY} = e
        
@@ -163,20 +191,43 @@ const Rough2 = ()=>{
     }
 
 
-   const mouseup = (e: React.MouseEvent<HTMLCanvasElement>)=>{
+   const mouseup = (e:React.MouseEvent<HTMLCanvasElement>)=>{
+    if(tool == tools.text) return
+        setDrawing(false);
+    if(tool != tools.pencil){
+        setTool(tools.select)
+    }
 
-    setDrawing(false);
-    // if(tool==tools.text)
-    // {
-    //          setAction("text")
-    // }
-    // setAction("drawing")
    }
 
-  
+   const blurhandler = () =>
+   {
+        if(tool != tools.text) return 
+        const text  = textarea.current?.value;
+        
+       const updated = updateelements(elements,0,0,tools.text,text)
+       if(!updated) return
+       setElements(updated)
+        setAction("draw")
+        setTool(tools.select)
+   }
+
+   const onClick= (e:React.MouseEvent<HTMLCanvasElement>) => {
+    if(action == "text") return
+       if(tool !=tools.text) return
+       
+       setAction("text")
+       const {clientX,clientY} = e
+       console.log(clientX,clientY);
+       const element = createElement(clientX,clientY,clientX,clientY,tools.text)
+       if(!element) return 
+       setElements(prevState =>[...prevState,element])
+    }
 
     return ( <div>
     <div className='z-2 fixed'>
+        <input type="radio" id='Select' checked={tool==tools.select} value={tools.select} onChange={e=>setTool(tools.select)}/>
+        <label htmlFor='Select'>Select</label>
         <input type="radio" id='line' checked={tool==tools.line} value={tools.line} onChange={e=>setTool(tools.line)}/>
         <label htmlFor='line'>Line</label>
         <input type="radio" id='rectangle' checked={tool==tools.rectangle} value={tools.rectangle} onChange={e=>setTool(tools.rectangle)}/>
@@ -195,23 +246,27 @@ const Rough2 = ()=>{
             }/>
         <label htmlFor='text'>Text</label>
     </div>
-    {/* {(action==="text") ? <textarea 
+    {(action==="text") ? <textarea 
     ref={textarea}
+    onBlur={blurhandler}
+    autoFocus = {true}
     style={
-        {   position:"fixed",
-            top:inptl?.y-2 + 0,
-            left:inptl?.x + 0 ,
+        {  
+
+            position:"fixed",
+            top:elements[elements.length-1].y2,
+            left:elements[elements.length-1].x2,
             overflow:'auto',
             font: "24px sans-serif",
             margin: 0,
             padding: 0,
-            border: "5px solid black",
+            border: "transparent",
             outline: 0,
             whiteSpace: "pre",
             background: "transparent",
             zIndex: 3,
         }
-    }/>:null} */}
+    }/>:null}
         <canvas 
         ref={canvasRef}
         height={window.innerHeight}
@@ -219,6 +274,7 @@ const Rough2 = ()=>{
         onMouseDown={mousedown}
         onMouseMove={mousemove}
         onMouseUp={mouseup}
+        onClick={onClick}
         className='z-1'
         >Canvas</canvas>
         </div>
