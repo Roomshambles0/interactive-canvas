@@ -32,7 +32,8 @@ enum tools{
     "circle",
     "pencil",
     "text",
-    "select"
+    "select",
+    "pan"
 }
 
 const gen = rough.generator()
@@ -122,7 +123,9 @@ const createElement =(x1:number,y1:number,x2:number,y2:number,tool:tools,text?:s
                 ctx.textBaseline = "top";
                 ctx.font = "24px sans-serif"
                 console.log(element.x1,element.y1)
+               
                 ctx.fillText(element.text as string, element.x1, element.y1);
+         
                 }
             }
             else if(element.tool==tools.pencil){
@@ -142,13 +145,28 @@ const Rough2 = ()=>{
     const [drawing, setDrawing] =useState(false);
     const [tool,setTool] = useState<tools>(tools.select);
     const [action,setAction] =useState<string>()
+    const [cursor,setCursor] =useState({x:Number,y:Number})
+    const [panOffset,setPanOffset] = useState({x:0,y:0})
+    const [cursorstyle, setCursorStyle] = useState("pointer")
+    const [startingpanoffset,setStartingPanoffset] = useState({x:0,y:0})
+    const [scale,setScale] = useState(1)
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const canvas = canvasRef.current
     const textarea = useRef<HTMLTextAreaElement>(null)
-
+  
    
+    // useEffect(()=>{
+    //     if(!canvas) return
+    //     const ctx = canvas?.getContext("2d")
+    //     if(!ctx) return
+    //     const rc = rough.canvas(canvas)
 
-   
+      
+    //     Draw(elements,ctx,rc)
+
+    // },[scale])
+    
+
 
     useEffect(()=>{    
         if(!canvas) return 
@@ -156,19 +174,34 @@ const Rough2 = ()=>{
         const ctx = canvas.getContext("2d")
        if(!ctx) return
         ctx?.clearRect(0,0,canvas.width,canvas.height)
-      
+         ctx.save()
+         ctx.translate(panOffset.x,panOffset.y)
         Draw(elements,ctx,rc)
+        ctx.restore();
          
-    },[elements])
+    },[elements,panOffset,action])
 
-
+    const getMouseCoordinates = (event:MouseEvent | React.MouseEvent<HTMLCanvasElement> ) => {
+        const clientx = event.clientX - panOffset.x;
+        const clienty = event.clientY - panOffset.y;
+        return { clientx, clienty };
+      };
+    
     
     const mousedown = (e:React.MouseEvent<HTMLCanvasElement>)=>{
     setDrawing(true);
+    if(tool == tools.pan){
+        setAction("panning")
+        setCursorStyle("grabbing")
+        const {clientx,clienty} = getMouseCoordinates(e)
+        setStartingPanoffset({x:clientx,y:clienty})
+       return
+        
+    }
     if(tool == tools.select || tool == tools.text) return
     setAction("draw")
-    const {clientX,clientY} = e
-    const element = createElement(clientX,clientY,clientX,clientY,tool);
+    const {clientx,clienty} = getMouseCoordinates(e)
+    const element = createElement(clientx,clienty,clientx,clienty,tool);
       if(!element) return
        setElements(prevState =>[...prevState,element])
         setAction("draw")
@@ -180,10 +213,23 @@ const Rough2 = ()=>{
         if(!drawing) return
         if(tool==tools.text || tool==tools.select) return
         if(action == "text") return
-
-        const {clientX,clientY} = e
        
-        const elementscopy =updateelements(elements,clientX,clientY,tool)
+        const {clientx,clienty} = getMouseCoordinates(e)
+        if(tool == tools.pan){
+            if(action!="panning") return
+            const {clientx,clienty} = getMouseCoordinates(e)
+            const deltaX = clientx - startingpanoffset.x
+            const deltaY =clienty - startingpanoffset.y
+            setPanOffset(prevstate => 
+             (  { x:prevstate.x + deltaX,
+                 y:prevstate.y + deltaY
+               })
+            )
+           console.log(panOffset)
+           return
+            
+        }
+        const elementscopy =updateelements(elements,clientx,clienty,tool)
         if(!elementscopy) return
         setElements(elementscopy);
         console.log(elements)
@@ -192,10 +238,18 @@ const Rough2 = ()=>{
 
 
    const mouseup = (e:React.MouseEvent<HTMLCanvasElement>)=>{
-    if(tool == tools.text) return
+    if(tool == tools.text  ) return
+    
         setDrawing(false);
+        if(tool==tools.pan){
+ 
+            setAction("none")
+            setCursorStyle("grab")
+            return
+        }
     if(tool != tools.pencil){
         setTool(tools.select)
+        setCursorStyle("auto")
     }
 
    }
@@ -213,21 +267,42 @@ const Rough2 = ()=>{
    }
 
    const onClick= (e:React.MouseEvent<HTMLCanvasElement>) => {
+      
     if(action == "text") return
        if(tool !=tools.text) return
        
        setAction("text")
-       const {clientX,clientY} = e
-       console.log(clientX,clientY);
-       const element = createElement(clientX,clientY,clientX,clientY,tools.text)
+       const {clientx,clienty} = getMouseCoordinates(e)
+       console.log(clientx,clienty);
+       const element = createElement(clientx,clienty,clientx,clienty,tools.text)
        if(!element) return 
        setElements(prevState =>[...prevState,element])
     }
 
-    return ( <div>
+    const plusclick = ()=>{
+        const newScale = scale*1.1;
+        if(newScale<2){
+        setScale(newScale)
+        }
+    }
+
+    const minusclick = ()=>{
+        const newScale = scale/1.1;
+        if(newScale>0.1){
+        setScale(newScale)
+        }
+    }
+
+    return ( <div className='relative'>
+    {/* <div className='z-2 bottom-0 left-0  p-2 m-6 flex justify-between border-2 rounded-lg border-stone-900'>
+    <button className='px-2  border-r-2 border-stone-500 mr-2' onClick={plusclick}>Plus</button>
+    <button className='px-2  border-l-2 border-stone-500 ml-2' onClick={minusclick}>Minus</button>
+    </div> */}
     <div className='z-2 fixed'>
         <input type="radio" id='Select' checked={tool==tools.select} value={tools.select} onChange={e=>setTool(tools.select)}/>
         <label htmlFor='Select'>Select</label>
+        <input type="radio" id='pan' checked={tool==tools.pan} value={tools.pan} onChange={e=>setTool(tools.pan)} onClick={()=>setCursorStyle("grab")}/>
+        <label htmlFor='pan'>Pan</label>
         <input type="radio" id='line' checked={tool==tools.line} value={tools.line} onChange={e=>setTool(tools.line)}/>
         <label htmlFor='line'>Line</label>
         <input type="radio" id='rectangle' checked={tool==tools.rectangle} value={tools.rectangle} onChange={e=>setTool(tools.rectangle)}/>
@@ -267,8 +342,10 @@ const Rough2 = ()=>{
             zIndex: 3,
         }
     }/>:null}
+
         <canvas 
         ref={canvasRef}
+        style={{cursor:cursorstyle}}
         height={window.innerHeight}
         width={window.innerWidth}
         onMouseDown={mousedown}
