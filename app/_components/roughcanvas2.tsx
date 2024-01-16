@@ -115,13 +115,13 @@ const createElement =(x1:number,y1:number,x2:number,y2:number,tool:tools,text?:s
         return d.join(" ");
       };
 
-     const Draw = (elements:Element[],ctx:CanvasRenderingContext2D,rc:RoughCanvas)=>{
+     const Draw = (elements:Element[],ctx:CanvasRenderingContext2D,rc:RoughCanvas,scale:number)=>{
         if(!elements) return 
         elements.map((element:Element)=>{
             if(element.tool==tools.text){
                 if(element.text !=""){
                 ctx.textBaseline = "top";
-                ctx.font = "24px sans-serif"
+                ctx.font = `${24 + scale}px sans-serif`
                 console.log(element.x1,element.y1)
                
                 ctx.fillText(element.text as string, element.x1, element.y1);
@@ -150,46 +150,64 @@ const Rough2 = ()=>{
     const [cursorstyle, setCursorStyle] = useState("pointer")
     const [startingpanoffset,setStartingPanoffset] = useState({x:0,y:0})
     const [scale,setScale] = useState(1)
+    const [scaleoffset,setScaleoffset] = useState({x:0,y:0})
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const canvas = canvasRef.current
     const textarea = useRef<HTMLTextAreaElement>(null)
   
-   
-    // useEffect(()=>{
-    //     if(!canvas) return
-    //     const ctx = canvas?.getContext("2d")
-    //     if(!ctx) return
-    //     const rc = rough.canvas(canvas)
 
-      
-    //     Draw(elements,ctx,rc)
-
-    // },[scale])
     
 
 
-    useEffect(()=>{    
+    useLayoutEffect(()=>{    
         if(!canvas) return 
         const rc = rough.canvas(canvas)
         const ctx = canvas.getContext("2d")
        if(!ctx) return
         ctx?.clearRect(0,0,canvas.width,canvas.height)
+
+        const scaledwidth = canvas.width * scale
+        const scaledheight = canvas.height * scale
+
+        const scaledoffsetx = (scaledwidth - canvas.width)/2;
+        const scaledoffsety =(scaledheight  - canvas.height)/2;
+        setScaleoffset({x:scaledoffsetx , y:scaledoffsety})
+
+
+        
          ctx.save()
-         ctx.translate(panOffset.x,panOffset.y)
-        Draw(elements,ctx,rc)
+
+
+         ctx.translate(panOffset.x * scale - scaledoffsetx ,panOffset.y * scale - scaledoffsety)
+        ctx.scale(scale,scale)
+
+        //  ctx.translate(-scaleoffset.x,-scaleoffset.y)     
+
+        Draw(elements,ctx,rc,scale)
         ctx.restore();
          
-    },[elements,panOffset,action])
+    },[elements,panOffset,scale])
+
+       
+    // useEffect(()=>{
+    //     if(!canvas) return
+    //  const ctx = canvas.getContext("2d")
+    //  const width = canvas?.width
+    //  const height = canvas?.height
+     
+     
+
+    // },[scale])
 
     const getMouseCoordinates = (event:MouseEvent | React.MouseEvent<HTMLCanvasElement> ) => {
-        const clientx = event.clientX - panOffset.x;
-        const clienty = event.clientY - panOffset.y;
+        const clientx = (event.clientX - panOffset.x*scale + scaleoffset.x)/scale ;
+        const clienty = (event.clientY - panOffset.y*scale + scaleoffset.y)/scale;
         return { clientx, clienty };
       };
     
     
     const mousedown = (e:React.MouseEvent<HTMLCanvasElement>)=>{
-    setDrawing(true);
+        setDrawing(true);
     if(tool == tools.pan){
         setAction("panning")
         setCursorStyle("grabbing")
@@ -199,6 +217,8 @@ const Rough2 = ()=>{
         
     }
     if(tool == tools.select || tool == tools.text) return
+    
+ 
     setAction("draw")
     const {clientx,clienty} = getMouseCoordinates(e)
     const element = createElement(clientx,clienty,clientx,clienty,tool);
@@ -223,7 +243,9 @@ const Rough2 = ()=>{
             setPanOffset(prevstate => 
              (  { x:prevstate.x + deltaX,
                  y:prevstate.y + deltaY
-               })
+               }
+            
+               )
             )
            console.log(panOffset)
            return
@@ -249,8 +271,10 @@ const Rough2 = ()=>{
         }
     if(tool != tools.pencil){
         setTool(tools.select)
-        setCursorStyle("auto")
+       
     }
+
+    setCursorStyle("default")
 
    }
 
@@ -280,24 +304,15 @@ const Rough2 = ()=>{
     }
 
     const plusclick = ()=>{
-        const newScale = scale*1.1;
-        if(newScale<2){
-        setScale(newScale)
-        }
+        setScale(prevstate => Math.min(prevstate + 0.1,2))
     }
 
     const minusclick = ()=>{
-        const newScale = scale/1.1;
-        if(newScale>0.1){
-        setScale(newScale)
-        }
+       
+       setScale(prevstate => Math.max(prevstate - 0.1,0.1))
     }
 
-    return ( <div className='relative'>
-    {/* <div className='z-2 bottom-0 left-0  p-2 m-6 flex justify-between border-2 rounded-lg border-stone-900'>
-    <button className='px-2  border-r-2 border-stone-500 mr-2' onClick={plusclick}>Plus</button>
-    <button className='px-2  border-l-2 border-stone-500 ml-2' onClick={minusclick}>Minus</button>
-    </div> */}
+    return ( <div>
     <div className='z-2 fixed'>
         <input type="radio" id='Select' checked={tool==tools.select} value={tools.select} onChange={e=>setTool(tools.select)}/>
         <label htmlFor='Select'>Select</label>
@@ -321,6 +336,12 @@ const Rough2 = ()=>{
             }/>
         <label htmlFor='text'>Text</label>
     </div>
+   
+     <div className='z-3 bottom-0 left-0 absolute p-2 m-6 flex justify-between border-2 rounded-lg border-stone-900'>
+    <button className='px-2  border-r-2 border-stone-500 mr-2' onClick={minusclick}>Minus</button>
+    <button onClick={()=>setScale(1)}>{new Intl.NumberFormat('en-GB',{style:"percent"}).format(scale)}</button>
+    <button className='px-2  border-l-2 border-stone-500 ml-2'  onClick={plusclick}>Plus</button>
+    </div> 
     {(action==="text") ? <textarea 
     ref={textarea}
     onBlur={blurhandler}
@@ -329,10 +350,10 @@ const Rough2 = ()=>{
         {  
 
             position:"fixed",
-            top:elements[elements.length-1].y2,
-            left:elements[elements.length-1].x2,
+            top:elements[elements.length-1].y1 * scale - scaleoffset.y ,
+            left:elements[elements.length-1].x1 * scale - scaleoffset.x,
             overflow:'auto',
-            font: "24px sans-serif",
+            font: `${24 * scale}px sans-serif`,
             margin: 0,
             padding: 0,
             border: "transparent",
@@ -355,7 +376,9 @@ const Rough2 = ()=>{
         className='z-1'
         >Canvas</canvas>
         </div>
+       
     )
+
     }
 
 
