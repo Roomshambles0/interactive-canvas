@@ -337,7 +337,7 @@ const Rough2 = ()=>{
         <label htmlFor='text'>Text</label>
     </div>
    
-     <div className='z-3 bottom-0 left-0 absolute p-2 m-6 flex justify-between border-2 rounded-lg border-stone-900'>
+     <div className='z- bottom-0 left-0 absolute p-2 m-6 flex justify-between border-2 rounded-lg border-stone-900'>
     <button className='px-2  border-r-2 border-stone-500 mr-2' onClick={minusclick}>Minus</button>
     <button onClick={()=>setScale(1)}>{new Intl.NumberFormat('en-GB',{style:"percent"}).format(scale)}</button>
     <button className='px-2  border-l-2 border-stone-500 ml-2'  onClick={plusclick}>Plus</button>
@@ -350,8 +350,8 @@ const Rough2 = ()=>{
         {  
 
             position:"fixed",
-            top:elements[elements.length-1].y1 * scale - scaleoffset.y ,
-            left:elements[elements.length-1].x1 * scale - scaleoffset.x,
+            top:(elements[elements.length-1].y1*scale  + panOffset.y  * scale - scaleoffset.y),
+            left:(elements[elements.length-1].x1*scale + panOffset.x  * scale - scaleoffset.x) ,
             overflow:'auto',
             font: `${24 * scale}px sans-serif`,
             margin: 0,
