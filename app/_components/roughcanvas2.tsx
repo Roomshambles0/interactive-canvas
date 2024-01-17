@@ -11,6 +11,7 @@ type point = {x:number,y:number,pressure?: number | undefined}[]
 type inputbox = {x:number,y:number}
 
 interface Element{
+    id?:number
     x1:number;
     y1:number;
     x2:number;
@@ -151,6 +152,8 @@ const Rough2 = ()=>{
     const [startingpanoffset,setStartingPanoffset] = useState({x:0,y:0})
     const [scale,setScale] = useState(1)
     const [scaleoffset,setScaleoffset] = useState({x:0,y:0})
+    const [history,setHistory] = useState<Element[]>([])
+    const [undo,setUndo] = useState(false)
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const canvas = canvasRef.current
     const textarea = useRef<HTMLTextAreaElement>(null)
@@ -312,6 +315,43 @@ const Rough2 = ()=>{
        setScale(prevstate => Math.max(prevstate - 0.1,0.1))
     }
 
+
+    const onundo = ()=>{
+        if(undo && elements.length>=history.length){
+            const copy = [...elements]
+            setHistory([...copy]);
+          }
+       
+       if(!undo){
+         setUndo(true);
+         const copy = [...elements]
+         setHistory([...copy]);
+      }
+
+      const copy = [...elements]
+      copy.pop()
+      setElements([...copy]);
+    }
+
+    const onredo = ()=>{
+ 
+   if(elements.length >= history.length){
+    console.log(elements.length)
+    console.log(history.length)
+    setHistory([])
+    setUndo(false)
+    return
+   } 
+     
+    const index = elements.length - 1
+    if(elements[index] != history[index]){
+        setHistory([])
+        setUndo(false)
+        return;
+      }
+     setElements(prevState => [...prevState,history[index + 1]])
+    }
+
     return ( <div>
     <div className='z-2 fixed'>
         <input type="radio" id='Select' checked={tool==tools.select} value={tools.select} onChange={e=>setTool(tools.select)}/>
@@ -336,12 +376,18 @@ const Rough2 = ()=>{
             }/>
         <label htmlFor='text'>Text</label>
     </div>
-   
+   <div className='flex'>
      <div className='z- bottom-0 left-0 absolute p-2 m-6 flex justify-between border-2 rounded-lg border-stone-900'>
     <button className='px-2  border-r-2 border-stone-500 mr-2' onClick={minusclick}>Minus</button>
     <button onClick={()=>setScale(1)}>{new Intl.NumberFormat('en-GB',{style:"percent"}).format(scale)}</button>
     <button className='px-2  border-l-2 border-stone-500 ml-2'  onClick={plusclick}>Plus</button>
-    </div> 
+     </div> 
+     <div className='bottom-0 left-0 absolute p-2 m-6 ml-60 flex justify-between border-2 rounded-lg border-stone-900'>
+     <button className='pl-2   border-stone-500 ' onClick={onundo}>undo</button>
+    <button className='px-2  border-l-2 border-stone-500 ml-2'  onClick={onredo}>redo</button>
+    </div>
+   </div>
+    
     {(action==="text") ? <textarea 
     ref={textarea}
     onBlur={blurhandler}
