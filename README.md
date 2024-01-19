@@ -1,4 +1,4 @@
-# Next.js Drawing Application
+# Interactive-canvas (Next.js Drawing Application)
 
  
 This is a simple drawing application built with Next.js, leveraging the HTML canvas element for rendering, Rough.js for hand-drawn graphics, and Tailwind CSS for styling.
