@@ -155,6 +155,7 @@ const Rough2 = () => {
     const [scaleoffset, setScaleoffset] = useState({ x: 0, y: 0 })
     const [history, setHistory] = useState<Element[]>([])
     const [undo, setUndo] = useState(false)
+    const [iswindow , setIswindow] = useState(false);
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const canvas = canvasRef.current
     const textarea = useRef<HTMLTextAreaElement>(null)
@@ -164,6 +165,9 @@ const Rough2 = () => {
 
 
     useLayoutEffect(() => {
+        if(typeof window != "undefined"){
+            setIswindow(true)
+        }
         if (!canvas) return
         const rc = rough.canvas(canvas)
         const ctx = canvas.getContext("2d")
@@ -425,7 +429,7 @@ const Rough2 = () => {
                 }
             } /> : null}
 
-        <canvas
+      {iswindow && <canvas
             ref={canvasRef}
             style={{ cursor: cursorstyle }}
             height={window.innerHeight}
@@ -435,8 +439,9 @@ const Rough2 = () => {
             onMouseUp={mouseup}
             onClick={onClick}
             className='z-1 bg-white'
-        >Canvas</canvas>
+        >Canvas</canvas>}
     </div>
+      
 
     )
 
