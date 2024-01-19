@@ -24,13 +24,13 @@ currently its just frontend.
 1. **Clone the Repository:**
 
     ```bash
-    git clone https://github.com/your-username/nextjs-drawing-app.git
+    git clone https://github.com/Roomshambles0/interactive-canvas.git
     ```
 
 2. **Navigate to the Project Directory:**
 
     ```bash
-    cd nextjs-drawing-app
+    cd interactive-canvas
     ```
 
 3. **Install Dependencies:**
