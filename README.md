@@ -61,6 +61,7 @@ Feel free to contribute to the project. Whether you find a bug, have a feature r
 ## Future Enhancements
 - [ ] Add backend where canvas current state is stored.  
 - [ ] Add user auth functionality. 
+- [ ] arranging code in proper file structure
 
 ## License
 
