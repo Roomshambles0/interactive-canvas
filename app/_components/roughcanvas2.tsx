@@ -5,7 +5,7 @@ import rough from 'roughjs'
 import { Drawable } from 'roughjs/bin/core';
 import getStroke, { getStrokePoints } from 'perfect-freehand';
 import { RoughCanvas } from 'roughjs/bin/canvas';
-import { Plus,Minus,Undo2,Redo2, MousePointer2, MousePointer } from 'lucide-react';
+import { Plus,Minus,Undo2,Redo2, MousePointer, Hand, Slash, RectangleHorizontal, Circle, Pencil, Text, ALargeSmall } from 'lucide-react';
 
 
 type point = { x: number, y: number, pressure?: number | undefined }[]
@@ -75,6 +75,7 @@ const updateelements = (elements: Element[], clientX: number, clientY: number, t
     if (tool == tools.pencil) {
         const index = elements.length - 1;
         const points = elements[index].points as point
+        if(!points) return
         const pointcopy = [...points]
         const updated = { x1: elements[index].x1, y1: elements[index].y1, x2: clientX, y2: clientY, tool, points: [...pointcopy, { x: clientX, y: clientY }] }
         if (!updated) return
@@ -355,28 +356,39 @@ const Rough2 = () => {
 
     return (<div>
         <div className='z-3 fixed w-full flex justify-center  '>
-            <div className='border-b-2 border-l-2 border-r-2 bg-slate-200 border-stone-600 rounded-lg p-4 flex justify-'>
-            <input className="hidden" type="radio" id='Select' checked={tool == tools.select} value={tools.select} onChange={e => setTool(tools.select)} />
-            <label className='px-2' htmlFor='Select'><MousePointer/></label>
-            <input type="radio" id='pan' checked={tool == tools.pan} value={tools.pan} onChange={e => setTool(tools.pan)} onClick={() => setCursorStyle("grab")} />
-            <label className='px-2' htmlFor='pan'>Pan</label>
-            <input type="radio" id='line' checked={tool == tools.line} value={tools.line} onChange={e => setTool(tools.line)} />
-            <label htmlFor='line'>Line</label>
-            <input type="radio" id='rectangle' checked={tool == tools.rectangle} value={tools.rectangle} onChange={e => setTool(tools.rectangle)} />
-            <label htmlFor='rectangle'>Rectangle</label>
-            <input type="radio" id='circle' checked={tool == tools.circle} value={tools.circle} onChange={e => setTool(tools.circle)} />
-            <label htmlFor='circle'>Circle</label>
-            <input type="radio" id='pencil' checked={tool == tools.pencil} value={tools.pencil} onChange={() => {
-                setTool(tools.pencil)
-            }
-            } />
-            <label htmlFor='pencil'>Pencil</label>
-            <input type="radio" id='text' checked={tool == tools.text} value={tools.text} onChange={(e) => {
-                setTool(tools.text)
+            <div className='border-2 mt-2 bg-slate-200 border-stone-600 rounded-lg p-2 flex '>
+            <input className="hidden peer/select" type="radio" id='Select' checked={tool == tools.select} value={tools.select} onChange={(e) => {
+                setTool(tools.select) 
+                setCursorStyle("default")}} />
+            <label className='p-2 mx-2 hover:cursor-pointer hover:bg-slate-300  peer-checked/select:text-stone-100  peer-checked/select:bg-slate-500 rounded-lg' htmlFor='Select'><MousePointer/></label>
 
-            }
-            } />
-            <label htmlFor='text'>Text</label>
+            <input className="hidden peer/pan" type="radio" id='pan' checked={tool == tools.pan} value={tools.pan} onChange={e => setTool(tools.pan)} onClick={() => setCursorStyle("grab")} />
+            <label className='p-2 mx-2 hover:cursor-pointer hover:bg-slate-300  peer-checked/pan:text-stone-100  peer-checked/pan:bg-slate-500 rounded-lg' htmlFor='pan'><Hand/></label>
+
+            <input className="hidden peer/line" type="radio" id='line' checked={tool == tools.line} value={tools.line} onChange={(e) => {
+                setTool(tools.line) 
+                setCursorStyle("default")}} />
+            <label className='p-2 mx-2 hover:cursor-pointer hover:bg-slate-300  peer-checked/line:text-stone-100  peer-checked/line:bg-slate-500 rounded-lg' htmlFor='line'><Slash/></label>
+
+            <input className="hidden peer/rect" type="radio" id='rectangle' checked={tool == tools.rectangle} value={tools.rectangle}  onChange={(e) => {
+                setTool(tools.rectangle) 
+                setCursorStyle("default")}} />
+            <label className='p-2 mx-2 hover:cursor-pointer hover:bg-slate-300  peer-checked/rect:text-stone-100  peer-checked/rect:bg-slate-500 rounded-lg' htmlFor='rectangle'><RectangleHorizontal/></label>
+
+            <input className="hidden peer/circle" type="radio" id='circle' checked={tool == tools.circle} value={tools.circle}  onChange={(e) => {
+                setTool(tools.circle) 
+                setCursorStyle("default")}} />
+            <label className='p-2 mx-2 hover:cursor-pointer hover:bg-slate-300  peer-checked/circle:text-stone-100  peer-checked/circle:bg-slate-500 rounded-lg' htmlFor='circle'><Circle/></label>
+
+            <input className="hidden peer/pencil" type="radio" id='pencil' checked={tool == tools.pencil} value={tools.pencil}  onChange={(e) => {
+                setTool(tools.pencil) 
+                setCursorStyle("crosshair")}} />
+            <label className='p-2 mx-2 hover:cursor-pointer hover:bg-slate-300  peer-checked/pencil:text-stone-100  peer-checked/pencil:bg-slate-500 rounded-lg' htmlFor='pencil'><Pencil/></label>
+
+            <input className="hidden peer/text" type="radio" id='text' checked={tool == tools.text} value={tools.text}  onChange={(e) => {
+                setTool(tools.text) 
+                setCursorStyle("text")}} />
+            <label className='p-2 mx-2 hover:cursor-pointer hover:bg-slate-300  peer-checked/text:text-stone-100  peer-checked/text:bg-slate-500 rounded-lg' htmlFor='text'><ALargeSmall/></label>
             </div>
         </div>
         <div className='flex'>
