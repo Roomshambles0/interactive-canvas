@@ -147,9 +147,8 @@ const Rough2 = () => {
     const [drawing, setDrawing] = useState(false);
     const [tool, setTool] = useState<tools>(tools.select);
     const [action, setAction] = useState<string>()
-    const [cursor, setCursor] = useState({ x: Number, y: Number })
-    const [panOffset, setPanOffset] = useState({ x: 0, y: 0 })
     const [cursorstyle, setCursorStyle] = useState("pointer")
+    const [panOffset, setPanOffset] = useState({ x: 0, y: 0 })
     const [startingpanoffset, setStartingPanoffset] = useState({ x: 0, y: 0 })
     const [scale, setScale] = useState(1)
     const [scaleoffset, setScaleoffset] = useState({ x: 0, y: 0 })
@@ -195,17 +194,6 @@ const Rough2 = () => {
         ctx.restore();
 
     }, [elements, panOffset, scale])
-
-
-    // useEffect(()=>{
-    //     if(!canvas) return
-    //  const ctx = canvas.getContext("2d")
-    //  const width = canvas?.width
-    //  const height = canvas?.height
-
-
-
-    // },[scale])
 
     const getMouseCoordinates = (event: MouseEvent | React.MouseEvent<HTMLCanvasElement>) => {
         const clientx = (event.clientX - panOffset.x * scale + scaleoffset.x) / scale;
